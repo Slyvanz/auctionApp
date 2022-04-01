@@ -1,0 +1,23 @@
+<form (ngSubmit)="password.value == repassword.value && onSubmit()" #f="ngForm">
+  <input type="text"
+    ngModel name="username"
+    required
+  >
+  <input type="password"
+    ngModel name="password"
+    required
+    #password="ngModel"
+  >
+  <input type="password"
+    ngModel name="repassword"
+    required
+    #repassword="ngModel"
+  >
+  <span class="help-block" *ngIf="!(password.value == repassword.value) && f.submitted ">Şifreler Uyuşmuyor!</span>
+  <button type="submit"
+    class="btn btn-primary"
+    [disabled]="!f.valid"
+
+    >REGISTER</button>
+
+</form>

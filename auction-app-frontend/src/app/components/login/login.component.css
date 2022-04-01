@@ -1,0 +1,4 @@
+/*inputlara dokunulduğunda eğer invalid ise borderını kırmızı yapan css kodu*/
+input.ng-invalid.ng-touched {
+  border: 1px solid red;
+}
