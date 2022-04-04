@@ -1,28 +1,18 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, concatMap, finalize, Observable, of, tap} from "rxjs";
+import {BehaviorSubject, Observable} from "rxjs";
 
-@Injectable()
+@Injectable({
+  providedIn: "root"
+})
 export class SpinnerService {
-
-
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-
-  loading$: Observable<boolean> | any = this.loadingSubject.asObservable();
+  private _isLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  public isLoading$: Observable<boolean> = this._isLoading$.asObservable();
 
   loadingOn() {
-    this.loadingSubject.next(true);
+    this._isLoading$.next(true);
   }
 
   loadingOff() {
-    this.loadingSubject.next(false);
+    this._isLoading$.next(false);
   }
-
-  // showLoaderCompleted<T>(obs$: Observable<T>): Observable<T> | any {
-  //   return of(null)
-  //     .pipe(tap(() => this.loadingOn()),
-  //       concatMap(() => obs$),
-  //       finalize(() => this.loadingOff())
-  //     )
-  // }
-
 }

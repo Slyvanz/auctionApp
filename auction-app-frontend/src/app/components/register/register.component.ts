@@ -1,55 +1,57 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
-import { NgForm} from "@angular/forms";
-import {Apollo, gql} from 'apollo-angular';
-import {CREATE_USER} from '../../queries'
-
+import {Component} from '@angular/core';
+import {AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators} from "@angular/forms";
+import {AuthService} from "../../services/auth.service";
+import {SpinnerService} from "../../services/spinner.service";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css']
 })
-export class RegisterComponent implements OnInit {
-  @ViewChild('f') signupForm: NgForm | undefined;
+export class RegisterComponent {
+  errorMessage = '';
+  registerForm!: FormGroup;
 
-  users: any[] | undefined;
-
-
-  constructor(private apollo: Apollo) {}
-
-  ngOnInit() {
-
-    //this one is for getting movies data
-    this.apollo
-    .watchQuery({
-      query: gql`
-        query
-        {users{username}}
-      `,
-    })
-    .valueChanges.subscribe((result: any) => {
-      this.users = result?.data?.users;
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private spinnerService: SpinnerService,
+    private formBuilder: FormBuilder
+  ) {
+    this.registerForm = this.formBuilder.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+      rePassword: ['', Validators.required],
+    }, {
+      validators: (formGroup: AbstractControl): ValidationErrors | null => {
+        const { password, rePassword } = formGroup.value;
+        return password === rePassword ? null : { passwordMismatch: true }
+      }
     });
   }
 
-  onSubmit(){
-    // this one is for adding new movie to movies
-    this.apollo
-    .mutate({
-      mutation: CREATE_USER,
-      variables: {
-        username: this.signupForm?.value.username,
-        password: this.signupForm?.value.password,
+  register() {
+    if (this.registerForm.invalid) {
+      return;
+    }
+
+    this.spinnerService.loadingOn();
+
+    const {username, password} = this.registerForm.value;
+
+    this.authService.register({
+      username,
+      password
+    }).subscribe((result) => {
+      if (result) {
+        this.router.navigate(['/']);
       }
-    })
-    .subscribe();
-
-    // console.log(this.users);
-
-    this.signupForm?.reset();
-
+    }, (error) => {
+      this.errorMessage = error;
+      this.spinnerService.loadingOff();
+    }, () => {
+      this.spinnerService.loadingOff();
+    });
   }
-
-
-
 }

@@ -1,16 +1,15 @@
-<button type="button" routerLink="/" routerLinkActive="btb btn-primary" [routerLinkActiveOptions]="{exact: true}">HOME</button> |
+<ng-container *ngIf="{
+  activeUser: authService.activeUser$ | async
+} as data">
+  <button type="button" routerLink="/" routerLinkActive="btb btn-primary" [routerLinkActiveOptions]="{exact: true}">HOME</button> |
 
-<ng-container *ngIf="authService.activeUser$ | async else unauthorized">
-  <button (click)="onLogout()" type="button">LOGOUT</button>
+  <ng-container *ngIf="data.activeUser else unauthorized">
+    <button (click)="authService.logout()" type="button">LOGOUT</button>
+  </ng-container>
+
+  <ng-template #unauthorized>
+    <button type="button" routerLink="/login" routerLinkActive="btb btn-primary">LOGIN</button> |
+    <button type="button" routerLink="/register" routerLinkActive="btb btn-primary">REGISTER</button> |
+  </ng-template>
 </ng-container>
-
-<ng-template #unauthorized>
-  <button type="button" routerLink="/login" routerLinkActive="btb btn-primary">LOGIN</button> |
-  <button type="button" routerLink="/register" routerLinkActive="btb btn-primary">REGISTER</button> |
-</ng-template>
-
-<!--<button type="button" *ngIf="!(authService.activeUser$ | async)" routerLink="/login" routerLinkActive="btb btn-primary">LOGIN</button> |-->
-<!--<button type="button" *ngIf="!(authService.activeUser$ | async)" routerLink="/register" routerLinkActive="btb btn-primary">REGISTER</button> |-->
-
-<!--<button (click)="onLogout()" *ngIf="authService.activeUser$ | async" type="button">LOGOUT</button>-->
 

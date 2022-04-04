@@ -1,6 +1,5 @@
-import {NgModule} from '@angular/core';
+import {APP_INITIALIZER, NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
-
 //Apollo GraphQL
 import {APOLLO_OPTIONS, ApolloModule} from 'apollo-angular';
 import {HttpLink} from 'apollo-angular/http';
@@ -18,10 +17,54 @@ import {AuctionsComponent} from './components/auctions/auctions.component';
 import {AuctionAddComponent} from './components/user-panel/auction-add/auction-add.component';
 import {AuctionListComponent} from './components/user-panel/auction-list/auction-list.component';
 import {RegisterComponent} from './components/register/register.component';
-import {LoadingSpinnerComponent} from './shared/loading-spinner/loading-spinner.component';
+import {LoadingSpinnerComponent} from './components/loading-spinner/loading-spinner.component';
 import {HeaderComponent} from './components/header/header.component';
+import {DenemeComponent} from './deneme/deneme.component';
 import {AuthService} from "./services/auth.service";
-import { DenemeComponent } from './deneme/deneme.component';
+import {Observable} from "rxjs";
+
+function AppInitializerFactory(authService: AuthService): () => Observable<any> {
+  return (): Observable<any> => {
+    return authService.checkTokenThenFetchUser();
+  };
+}
+
+function ApolloInitializerFactory(httpLink: HttpLink) {
+  const http = httpLink.create({
+    uri: 'http://localhost:4001/graphql'
+  });
+
+  const middleware = new ApolloLink((operation, forward) => {
+    operation.setContext({
+      headers: new HttpHeaders().set(
+        'Authorization',
+        `${localStorage.getItem('token') || null}`,
+      ),
+    });
+    return forward(operation);
+  });
+
+  const link = middleware.concat(http);
+
+  return {
+    link,
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      mutate: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
+      },
+      watchQuery: {
+        fetchPolicy: 'network-only',
+        errorPolicy: 'all'
+      },
+      query: {
+        fetchPolicy: 'network-only',
+        errorPolicy: 'all'
+      }
+    }
+  };
+}
 
 @NgModule({
   declarations: [
@@ -47,63 +90,15 @@ import { DenemeComponent } from './deneme/deneme.component';
     HttpClientModule,
   ],
   providers: [
-    AuthService,
     {
-      //Apollo
+      provide: APP_INITIALIZER,
+      useFactory: AppInitializerFactory,
+      multi: true,
+      deps: [AuthService],
+    },
+    {
       provide: APOLLO_OPTIONS,
-      // useFactory: (httpLink: HttpLink) => {
-      //   return {
-      //     cache: new InMemoryCache(),
-      //     link: httpLink.create({
-      //       uri: 'http://localhost:4001/graphql',
-      //     }),
-      //     //authentication için
-      //     fetchOptions: {
-      //       //token ise include çerez ise same-origin kullanıyoruz
-      //       credentials: 'include'
-      //     },
-      //     request: operation => {
-      //       operation.setContext({
-      //         headers: {
-      //           authorization: localStorage.getItem('token')
-      //         }
-      //       })
-      //     }
-      //   };
-      // },
-      useFactory(httpLink: HttpLink) {
-        const http = httpLink.create({uri: 'http://localhost:4001/graphql'});
-        const middleware = new ApolloLink((operation, forward) => {
-          operation.setContext({
-            headers: new HttpHeaders().set(
-              'Authorization',
-              `${localStorage.getItem('token') || null}`,
-            ),
-          });
-          return forward(operation);
-        });
-
-        const link = middleware.concat(http);
-
-        return {
-          link,
-          cache: new InMemoryCache(),
-          defaultOptions: {
-            mutate: {
-              fetchPolicy: 'no-cache',
-              errorPolicy: 'all'
-            },
-            watchQuery: {
-              fetchPolicy: 'network-only',
-              errorPolicy: 'all'
-            },
-            query: {
-              fetchPolicy: 'network-only',
-              errorPolicy: 'all'
-            }
-          }
-        };
-      },
+      useFactory: ApolloInitializerFactory,
       deps: [HttpLink],
     }
   ],

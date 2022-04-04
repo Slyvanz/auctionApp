@@ -1,10 +1,8 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
+import {Component} from '@angular/core';
 import {FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {Apollo} from "apollo-angular";
 import {Router} from "@angular/router";
 import {AuthService} from "../../services/auth.service";
 import {SpinnerService} from "../../services/spinner.service";
-import {filter, pipe, tap} from "rxjs";
 
 @Component({
   selector: 'app-login',
@@ -17,7 +15,6 @@ export class LoginComponent {
   loginForm!: FormGroup;
 
   constructor(
-    private apollo: Apollo,
     private router: Router,
     private authService: AuthService,
     private spinnerService: SpinnerService,
@@ -29,7 +26,7 @@ export class LoginComponent {
     });
   };
 
-  onSubmit() {
+  login() {
     if (this.loginForm.invalid) {
       return;
     }
@@ -38,16 +35,17 @@ export class LoginComponent {
 
     const {username, password} = this.loginForm.value;
 
-    this.authService.onLogin({
+    this.authService.login({
       username,
       password
-    })
-      .subscribe((result) => {
+    }).subscribe((result) => {
       if (result) {
         this.router.navigate(['/']);
-      } else {
-        this.errorMessage = 'Hata mesajı';
       }
+    }, (error) => {
+      this.errorMessage = error;
+      this.spinnerService.loadingOff();
+    }, () => {
       this.spinnerService.loadingOff();
     });
   }
