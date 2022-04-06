@@ -1,2 +1,6 @@
-<!--<div *ngIf="authService.activeUser.value">Kullanıcı adı: {{ authService.activeUser.value.username }}</div>-->
-<app-deneme (eventEmitter)="authService.reloadAuth()"></app-deneme>
+<ng-container *ngIf="{
+  activeUser: authService.activeUser$ | async
+} as data">
+  <div *ngIf="data.activeUser">Kullanıcı adı: {{ data.activeUser.username }}</div>
+</ng-container>
+<!--<app-deneme (eventEmitter)="authService.reloadAuth()"></app-deneme>-->

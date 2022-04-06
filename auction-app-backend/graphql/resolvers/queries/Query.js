@@ -6,6 +6,11 @@ const Query = {
         return await User.find({}).sort({'createdAt': 'desc'});
     },
     activeUser: async (parent, args, {activeUser, User}) => {
+        // TODO: FAKE DELAY, akış tamamlandığında mı aksiyon gerçekleşiyor yoksa tamamlanmayı beklemedenmi gerçekleşiyoru test edebilmek için.
+        const sleep = ms => new Promise(
+            resolve => setTimeout(resolve, ms));
+        await sleep(2000);
+
         if(!activeUser){
             return null;
         }

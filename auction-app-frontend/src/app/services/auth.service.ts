@@ -1,48 +1,55 @@
 import {Injectable} from '@angular/core';
 import {Apollo} from "apollo-angular";
 import {Router} from "@angular/router";
-import {GET_ACTIVE_USER, SIGNIN_USER} from "../queries"
-import {BehaviorSubject, catchError, map, Observable, of, switchMap, tap, throwError} from "rxjs";
+import {CREATE_USER, GET_ACTIVE_USER, SIGNIN_USER} from "../queries"
+import {BehaviorSubject, catchError, Observable, of, switchMap, throwError} from "rxjs";
+import {take} from "rxjs/operators";
 
 export interface User {
   username: string;
 }
 
 const TOKEN = "token";
+const LOGIN_ERROR_MESSAGE = "Oturum açılamadı.";
+const GET_ACTIVE_USER_ERROR_MESSAGE = "Kimliğiniz doğrulanamadı.";
+const REGISTER_ERROR_MESSAGE = "Kayıdınız tamamlanamadı.";
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-
-  //private
-  private userSubject$ = new BehaviorSubject<User | null>(null);
-  activeUser$: Observable<User | null> = this.userSubject$.asObservable();
+  private _activeUser$ = new BehaviorSubject<User | null>(null);
+  public activeUser$: Observable<User | null> = this._activeUser$.asObservable();
 
   constructor(private apollo: Apollo, private router: Router) {
+  }
 
-  };
-
-  reloadAuth(): void {
+  checkTokenThenFetchUser(): Observable<boolean> {
     const token = localStorage.getItem(TOKEN);
 
     if (token) {
-      this.getActiveUser().subscribe();
+      return this.getActiveUser();
     }
+
+    return of(false);
   }
 
-  onLogout(): void {
-    this.userSubject$.next(null);
+  logout(): void {
+    this._activeUser$.next(null);
     localStorage.removeItem(TOKEN);
     this.router.navigate(['/']);
   };
 
-  onLogin({username, password}: {
+  login({username, password}: {
     username: string;
     password: string;
   }): Observable<boolean> {
     return this.apollo
-      .mutate({
+      .mutate<{
+        signIn: {
+          token: string
+        }
+      }>({
         mutation: SIGNIN_USER,
         variables: {
           username,
@@ -50,72 +57,82 @@ export class AuthService {
         }
       })
       .pipe(
-        switchMap(({data, errors}: any) => {
+        take(1),
+        switchMap(({data, errors}) => {
           if (errors && errors.length > 0) {
-            // console.log(throwError(errors));
-            return throwError(errors);
+            return throwError(errors.map((error) => error.message).join(', '));
           }
+
+          if (!(data && data.signIn && data.signIn.token)) {
+            return throwError(LOGIN_ERROR_MESSAGE);
+          }
+
           localStorage.setItem(TOKEN, data.signIn.token);
-          //??
+
           return this.getActiveUser();
         }),
-        catchError(() => {
-          console.log('throwError');
-          return of(false);
+      );
+  }
+
+  register({username, password}: {
+    username: string;
+    password: string;
+  }): Observable<boolean> {
+    return this.apollo
+      .mutate<{
+        createUser: {
+          token: string
+        }
+      }>({
+        mutation: CREATE_USER,
+        variables: {
+          username,
+          password,
+        }
+      })
+      .pipe(
+        take(1),
+        switchMap(({data, errors}) => {
+          if (errors && errors.length > 0) {
+            return throwError(errors.map((error) => error.message).join(', '));
+          }
+
+          if (!(data && data.createUser && data.createUser.token)) {
+            return throwError(REGISTER_ERROR_MESSAGE);
+          }
+
+          localStorage.setItem(TOKEN, data.createUser.token);
+
+          return this.getActiveUser();
         }),
       );
   }
 
   getActiveUser(): Observable<boolean> {
     return this.apollo
-      .watchQuery({
-        query: GET_ACTIVE_USER,
-        fetchPolicy: 'cache-and-network'
+      .watchQuery<{
+        activeUser: User
+      }>({
+        query: GET_ACTIVE_USER
       })
       .valueChanges.pipe(
-        tap(({data}: any) => {
-          this.userSubject$.next(data.activeUser);
+        take(1),
+        switchMap(({data, errors}) => {
+          if (errors && errors.length > 0) {
+            return throwError(errors.map((error) => error.message).join(', '));
+          }
+          if (!(data && data.activeUser && data.activeUser.username)) {
+            return throwError(GET_ACTIVE_USER_ERROR_MESSAGE);
+          }
+
+          this._activeUser$.next(data.activeUser);
+
+          return of(true);
         }),
-        map(({data}: any) => Boolean(data.activeUser))
+        catchError(() => {
+          localStorage.removeItem(TOKEN);
+          return of(false);
+        })
       );
   }
-
-  //////////////////////////
-
-  // onLogin({username, password}: {
-  //   username: string;
-  //   password: string;
-  // }): Observable<User | null> {
-  //   return this.apollo
-  //     .mutate({
-  //       mutation: SIGNIN_USER,
-  //       variables: {
-  //         username,
-  //         password,
-  //       }
-  //     })
-  //     .pipe(
-  //       switchMap(({data}: any) => {
-  //         localStorage.setItem('token', data.signIn.token);
-  //         return this.getActiveUser();
-  //       }),
-  //       catchError(() => {
-  //         console.log('throwError');
-  //         return of(null);
-  //       }),
-  //     );
-  // }
-
-  // getActiveUser(): Observable<User | null> {
-  //   return this.apollo
-  //     .watchQuery({
-  //       query: GET_ACTIVE_USER,
-  //     })
-  //     .valueChanges.pipe(
-  //       tap(({data}: any) => {
-  //         this.activeUser.next(data.activeUser);
-  //       }),
-  //       map(({data}: any) => data.activeUser)
-  //     );
-  // }
 }

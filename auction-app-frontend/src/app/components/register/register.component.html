@@ -1,23 +1,35 @@
-<form (ngSubmit)="password.value == repassword.value && onSubmit()" #f="ngForm">
-  <input type="text"
-    ngModel name="username"
-    required
-  >
-  <input type="password"
-    ngModel name="password"
-    required
-    #password="ngModel"
-  >
-  <input type="password"
-    ngModel name="repassword"
-    required
-    #repassword="ngModel"
-  >
-  <span class="help-block" *ngIf="!(password.value == repassword.value) && f.submitted ">Şifreler Uyuşmuyor!</span>
+<form [formGroup]="registerForm">
+  <div>
+    <input type="text"
+           formControlName="username">
+    <span [ngStyle]="{color: '#ff0000'}"
+          *ngIf="registerForm.get('username')?.invalid && registerForm.get('username')?.touched">Doldurulması zorunlu alan</span>
+  </div>
+
+  <div>
+    <input type="password"
+           formControlName="password">
+    <span [ngStyle]="{color: '#ff0000'}"
+          *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">Doldurulması zorunlu alan</span>
+  </div>
+
+  <div>
+    <input type="password"
+           formControlName="rePassword">
+    <span [ngStyle]="{color: '#ff0000'}"
+          *ngIf="registerForm.get('rePassword')?.invalid && registerForm.get('rePassword')?.touched">Doldurulması zorunlu alan</span>
+  </div>
+
+  <span class="help-block" *ngIf="
+    (!registerForm.get('password')?.invalid && registerForm.get('password')?.touched) &&
+    (!registerForm.get('rePassword')?.invalid && registerForm.get('rePassword')?.touched) &&
+    registerForm.hasError('passwordMismatch')">Şifreler Uyuşmuyor!</span>
+
   <button type="submit"
-    class="btn btn-primary"
-    [disabled]="!f.valid"
+          class="btn btn-primary"
+          (click)="register()"
+          [disabled]="!registerForm.valid"
 
-    >REGISTER</button>
-
+  >REGISTER
+  </button>
 </form>
